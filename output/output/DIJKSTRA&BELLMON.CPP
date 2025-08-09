@@ -1,0 +1,158 @@
+#include<iostream>
+#include<climits>
+#include<vector>
+#include<algorithm>
+#include<queue>
+
+using namespace std;
+
+// Class to implement Dijkstra's and Bellman-Ford algorithms
+class Solution {
+public:
+    // Dijkstra's Algorithm for shortest paths with non-negative edges
+    vector<int> dijkstra(int V, vector<vector<pair<int, int>>>& adj, int S) {
+        priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> pq;
+        vector<int> dist(V, INT_MAX);
+
+        dist[S] = 0;
+        pq.push({0, S});
+
+        while (!pq.empty()) {
+            int dis = pq.top().first;
+            int node = pq.top().second;
+            pq.pop();
+
+            if (dis > dist[node]) {
+                continue;
+            }
+
+            for (auto it : adj[node]) {
+                int adjNode = it.first;
+                int edgeWeight = it.second;
+
+                if (dist[node] != INT_MAX && dist[node] + edgeWeight < dist[adjNode]) {
+                    dist[adjNode] = dist[node] + edgeWeight;
+                    pq.push({dist[adjNode], adjNode});
+                }
+            }
+        }
+        return dist;
+    }
+
+    // Bellman-Ford Algorithm for shortest paths with negative edges and cycle detection
+    vector<int> bellman_ford(int V, vector<vector<int>>& edges, int S) {
+        vector<int> dist(V, INT_MAX);
+        dist[S] = 0;
+
+        // V-1 iterations for relaxation
+        for (int i = 0; i < V - 1; i++) {
+            for (auto it : edges) {
+                int u = it[0];
+                int v = it[1];
+                int wt = it[2];
+
+                if (dist[u] != INT_MAX && dist[u] + wt < dist[v]) {
+                    dist[v] = dist[u] + wt;
+                }
+            }
+        }
+
+        // Vth iteration to check for negative cycles
+        for (auto it : edges) {
+            int u = it[0];
+            int v = it[1];
+            int wt = it[2];
+
+            if (dist[u] != INT_MAX && dist[u] + wt < dist[v]) {
+                return {-1}; // Return {-1} to indicate a negative cycle
+            }
+        }
+
+        return dist;
+    }
+};
+
+int main() {
+    Solution solver;
+    int V = 6;
+    int S = 0; // Admission Office is Node 0
+
+    // Location names based on the image
+    vector<string> location_names = {"Admission Office", "AB-4", "Location 2", "Location 3", "Location 4", "Location 5"};
+
+    // Dijkstra's part (non-negative edges)
+    // Adj list for Dijkstra
+    vector<vector<pair<int, int>>> adj_dijkstra(V);
+    adj_dijkstra[0].push_back({1, 3});
+    adj_dijkstra[0].push_back({2, 5});
+    adj_dijkstra[1].push_back({3, 4});
+    adj_dijkstra[1].push_back({2, 2});
+    adj_dijkstra[2].push_back({3, 1});
+    adj_dijkstra[3].push_back({4, 6});
+    adj_dijkstra[4].push_back({5, 8});
+    
+    cout << "Dijkstra's Shortest Paths (Source: " << location_names[S] << "):\n";
+    vector<int> dijkstra_distances = solver.dijkstra(V, adj_dijkstra, S);
+
+    for (int i = 0; i < V; ++i) {
+        if (dijkstra_distances[i] == INT_MAX) {
+            cout << "  To " << location_names[i] << " (Node " << i << "): INF\n";
+        } else {
+            cout << "  To " << location_names[i] << " (Node " << i << "): " << dijkstra_distances[i] << "\n";
+        }
+    }
+    
+    cout << endl;
+
+    // Bellman-Ford's part (with a negative edge)
+    // Edge list for Bellman-Ford
+    vector<vector<int>> edges_bellman = {
+        {0, 1, 3},
+        {0, 2, 5},
+        {1, 3, 4},
+        {1, 2, -2}, // Negative edge
+        {2, 3, 1},
+        {3, 4, 6},
+        {4, 5, 8}
+    };
+    
+    cout << "Bellman-Ford Shortest Paths (Source: " << location_names[S] << "):\n";
+    vector<int> bellman_distances = solver.bellman_ford(V, edges_bellman, S);
+
+    if (bellman_distances.size() == 1 && bellman_distances[0] == -1) {
+        cout << "  Graph contains a negative weight cycle.\n";
+    } else {
+        for (int i = 0; i < V; ++i) {
+            if (bellman_distances[i] == INT_MAX) {
+                cout << "  To " << location_names[i] << " (Node " << i << "): INF\n";
+            } else {
+                cout << "  To " << location_names[i] << " (Node " << i << "): " << bellman_distances[i] << "\n";
+            }
+        }
+    }
+
+    // Bellman-Ford's part with negative cycle
+    vector<vector<int>> edges_negative_cycle = {
+        {0, 1, 1},
+        {1, 2, -1},
+        {2, 3, -1},
+        {3, 1, -1} // Creates a negative cycle: 1 -> 2 -> 3 -> 1 with total weight -3
+    };
+    
+    cout << "\nBellman-Ford with a Negative Cycle (Source: " << location_names[S] << "):\n";
+    vector<int> negative_cycle_distances = solver.bellman_ford(4, edges_negative_cycle, S);
+
+    if (negative_cycle_distances.size() == 1 && negative_cycle_distances[0] == -1) {
+        cout << "  Graph contains a negative weight cycle.\n";
+    } else {
+        for (int i = 0; i < 4; ++i) {
+            if (negative_cycle_distances[i] == INT_MAX) {
+                cout << "  To " << location_names[i] << " (Node " << i << "): INF\n";
+            } else {
+                cout << "  To " << location_names[i] << " (Node " << i << "): " << negative_cycle_distances[i] << "\n";
+            }
+        }
+    }
+
+    return 0;
+}
